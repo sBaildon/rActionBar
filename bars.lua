@@ -62,6 +62,19 @@ function rActionBar:CreateActionBar1(addonName,cfg)
   local numButtons = NUM_ACTIONBAR_BUTTONS
   local buttonList = L:GetButtonList(buttonName, numButtons)
   local frame = L:CreateButtonFrame(cfg,buttonList)
+  --fix the button grid for actionbar1
+  local function ToggleButtonGrid()
+    if InCombatLockdown() then
+      print("Grid toggle for actionbar1 is not possible in combat.")
+      return
+    end
+    local showgrid = tonumber(GetCVar("alwaysShowActionBars"))
+    for i, button in next, buttonList do
+      button:SetAttribute("showgrid", showgrid)
+      ActionButton_ShowGrid(button)
+    end
+  end
+  hooksecurefunc("MultiActionBar_UpdateGridVisibility", ToggleButtonGrid)
   --_onstate-page state driver
   for i, button in next, buttonList do
     frame:SetFrameRef(buttonName..i, button)
@@ -73,7 +86,7 @@ function rActionBar:CreateActionBar1(addonName,cfg)
     end
   ]]):format(numButtons, buttonName))
   frame:SetAttribute("_onstate-page", [[
-    print("_onstate-page","index",newstate)
+    --print("_onstate-page","index",newstate)
     for i, button in next, buttons do
       button:SetAttribute("actionpage", newstate)
     end
@@ -144,13 +157,6 @@ function rActionBar:CreateStanceBar(addonName,cfg)
   local numButtons = NUM_STANCE_SLOTS
   local buttonList = L:GetButtonList(buttonName, numButtons)
   local frame = L:CreateButtonFrame(cfg,buttonList)
-  local function OnLogin(...)
-    --no stances? be gone!
-    if GetNumShapeshiftForms() == 0 then
-      RegisterStateDriver(frame, "visibility", "hide")
-    end
-  end
-  rLib:RegisterCallback("PLAYER_LOGIN", OnLogin)
   --special
   StanceBarLeft:SetTexture(nil)
   StanceBarMiddle:SetTexture(nil)
@@ -195,7 +201,12 @@ function rActionBar:CreateVehicleExitBar(addonName,cfg)
   cfg.frameParent = cfg.frameParent or UIParent
   cfg.frameTemplate = "SecureHandlerStateTemplate"
   cfg.frameVisibility = cfg.frameVisibility or "[canexitvehicle] show; hide"
-  local buttonList = { OverrideActionBar.LeaveButton }
+  --create vehicle exit button
+  local button = CreateFrame("CHECKBUTTON", A.."VehicleExitButton", nil, "ActionButtonTemplate, SecureHandlerClickTemplate")
+  button.icon:SetTexture("interface\\addons\\"..A.."\\media\\vehicleexit")
+  button:RegisterForClicks("AnyUp")
+  button:SetScript("OnClick", function(self) VehicleExit() self:SetChecked(false) end)
+  local buttonList = { button }
   local frame = L:CreateButtonFrame(cfg, buttonList)
 end
 
